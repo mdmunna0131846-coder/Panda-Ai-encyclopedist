@@ -1,1 +1,166 @@
 
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panda AI Encyclopedia</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0b1020;
+  color: white;
+}
+header {
+  text-align: center;
+  padding: 30px 15px;
+  background: #17233b;
+}
+h1 { color: #a5b4fc; }
+main {
+  max-width: 750px;
+  margin: auto;
+  padding: 18px;
+}
+form {
+  display: flex;
+  gap: 8px;
+}
+input {
+  flex: 1;
+  width: 50%;
+  min-width: 0;
+  padding: 13px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #64748b;
+}
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #a5b4fc;
+  color: #111827;
+  font-weight: bold;
+  cursor: pointer;
+}
+.card {
+  background: #17233b;
+  padding: 16px;
+  margin-top: 15px;
+  border-radius: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+a { color: #a5b4fc; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🐼 Panda AI</h1>
+  <p>তোমার ব্যক্তিগত Encyclopedia</p>
+  <p>ইতিহাস, বিজ্ঞান, ভূগোল ও বিশ্ব সম্পর্কে জানো</p>
+</header>
+
+<main>
+  <form id="searchForm">
+    <input id="question"
+      placeholder="কী জানতে চাও?"
+      required>
+    <button type="submit">খোঁজো</button>
+  </form>
+
+  <div id="results">
+    <div class="card">
+      স্বাগতম! কোনো প্রশ্ন বা বিষয় লিখে খোঁজো।
+      আমি Wikipedia থেকে প্রাসঙ্গিক তথ্য দেখাব।
+    </div>
+  </div>
+</main>
+
+<script>
+const form = document.getElementById("searchForm");
+const question = document.getElementById("question");
+const results = document.getElementById("results");
+
+form.addEventListener("submit", async function(event) {
+  event.preventDefault();
+
+  const q = question.value.trim();
+  if (!q) return;
+
+  results.replaceChildren();
+  const loading = document.createElement("div");
+  loading.className = "card";
+  loading.textContent = "তথ্য খোঁজা হচ্ছে...";
+  results.appendChild(loading);
+
+  const lang = /[\u0980-\u09FF]/.test(q) ? "bn" : "en";
+
+  const url = "https://" + lang +
+    ".wikipedia.org/w/api.php?action=query" +
+    "&generator=search&gsrsearch=" + encodeURIComponent(q) +
+    "&gsrnamespace=0&gsrlimit=5" +
+    "&prop=extracts%7Cinfo&exintro=1" +
+    "&explaintext=1&exsentences=5&inprop=url" +
+    "&format=json&origin=*";
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("তথ্য পাওয়া যায়নি");
+
+    const data = await response.json();
+    const pages = Object.values(data.query?.pages || {});
+
+    results.replaceChildren();
+
+    if (!pages.length) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.textContent = "কোনো ফল পাওয়া যায়নি। অন্য শব্দ দিয়ে চেষ্টা করো।";
+      results.appendChild(card);
+      return;
+    }
+
+    pages.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+    pages.forEach(page => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const title = document.createElement("h3");
+      title.textContent = page.title;
+
+      const description = document.createElement("p");
+      description.textContent =
+        page.extract || "এই বিষয়ে সংক্ষিপ্ত তথ্য নেই।";
+
+      const link = document.createElement("a");
+      link.href = page.fullurl ||
+        "https://" + lang + ".wikipedia.org/wiki/" +
+        encodeURIComponent(page.title.replaceAll(" ", "_"));
+      link.textContent = "বিস্তারিত পড়ো ↗";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
+      card.append(title, description, link);
+      results.appendChild(card);
+    });
+
+  } catch (error) {
+    results.replaceChildren();
+    const card = document.createElement("div");
+    card.className = "card";
+    card.textContent =
+      "তথ্য আনতে সমস্যা হয়েছে। ইন্টারনেট পরীক্ষা করে আবার চেষ্টা করো।";
+    results.appendChild(card);
+  }
+});
+</script>
+
+</body>
+</html>
+
